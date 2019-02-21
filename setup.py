@@ -2,7 +2,7 @@ import os
 
 from setuptools import find_packages, setup
 
-version = "0.1.1.dev0"
+version = "0.1.1"
 
 here = os.path.abspath(os.path.dirname(__file__))
 CHANGES = open(os.path.join(here, "CHANGES.md")).read()
@@ -26,7 +26,7 @@ setup(
     keywords="AWS EMR SPARK PYSPARK",
     author="Josip Delic",
     author_email="delijati@gmx.net",
-    url="https://www.github.com/delijati/spark_emr",
+    url="https://www.github.com/delijati/spark-emr",
     license="MIT",
     packages=find_packages(),
     include_package_data=True,
