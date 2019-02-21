@@ -1,0 +1,7 @@
+recursive-include spark_emr *
+recursive-include test *
+include *.md
+include *.yaml
+exclude .gitignore
+exclude .coverage
+global-exclude *.pyc

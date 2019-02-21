@@ -1,0 +1,38 @@
+language: python
+sudo: false
+
+matrix:
+    include:
+        - python: 3.5
+          env: TOXENV=py35
+        - python: 3.6
+          env: TOXENV=py36
+        - python: pypy3
+          env: TOXENV=pypy3
+        - python: 3.7
+          env: TOXENV=py37
+          dist: xenial
+          sudo: true
+        - python: 3.8-dev
+          env: TOXENV=py38
+          dist: xenial
+          sudo: true
+    allow_failures:
+        - env: TOXENV=py37
+        - env: TOXENV=py38
+
+# to fix boto error with google images
+# https://github.com/travis-ci/travis-ci/issues/7940
+before_install:
+    - export BOTO_CONFIG=/dev/null
+    - sudo rm -f /etc/boto.cfg
+
+install:
+    - travis_retry pip install tox
+
+script:
+    - travis_retry tox
+
+cache:
+    directories:
+        - $HOME/.cache/pip

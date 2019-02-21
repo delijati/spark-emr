@@ -1,0 +1,17 @@
+bootstrap_uri: s3://foo/bar
+master: 
+  instance_type: m4.large
+  size_in_gb: 100
+core: 
+  instance_type: m4.large
+  instance_count: 2
+  size_in_gb: 100
+ssh_key: sshkey4me
+subnet_id: ab12341
+python_version: python36
+emr_version: emr-5.14.0
+consistent: false
+optimization: true
+region: eu-central-1
+job_flow_role: EMR_EC2_DefaultRole 
+service_role: EMR_DefaultRole
