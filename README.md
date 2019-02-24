@@ -103,5 +103,13 @@ The created command can also be run directly from the master:
 
 ### Running commands on docker
 
-    $ docker run --rm -ti -v `pwd`/test/dummy:/app/work spark-base \
+To test if our spark is running as expected we can run it locally in docker.
+
+    $ git clone https://github.com/delijati/spark-docker
+    $ cd spark-docker
+    $ docker build . --pull -t spark
+
+Now we can run our spark job locally.
+
+    $ docker run --rm -ti -v `pwd`/test/dummy:/app/work spark \
     bash -c "cd /app/work && pip3 install -e . && spark_emr_dummy.py 10"
