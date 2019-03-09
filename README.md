@@ -78,9 +78,9 @@ Returns the status of a cluster (also terminated ones):
 
 ### List
 
-List all cluster:
+List all cluster and filter optionally by tag:
 
-    $ spark-emr list [--config config.yaml] [--namespace spark_emr]
+    $ spark-emr list [--config config.yaml] [--filter somekey somevalue]
 
 ### Stop
 

@@ -17,7 +17,7 @@ class TestMain(unittest.TestCase):
         self.assertRaises(SystemExit, main, [])
         out, err = self.capsys.readouterr()
         self.assertTrue(
-            "{start,status,list,stop}" in out)
+            "{spot,start,status,list,stop}" in out)
 
     def test_cli_start(self):
         self.assertRaises(SystemExit, main, ["start"])
@@ -41,3 +41,11 @@ class TestMain(unittest.TestCase):
             main(["list", "--config", CONFIG])
             out, err = self.capsys.readouterr()
             self.assertTrue("id, name, reason, state, created" in out)
+
+    # TODO NotImplementedError: SpotInstances.describe_spot_price_history is
+    # not yet implemented
+    # def test_cli_spot(self):
+    #     with moto.mock_ec2():
+    #         main(["spot", "--config", CONFIG])
+    #         out, err = self.capsys.readouterr()
+    #         self.assertTrue("id, name, reason, state, created" in out)

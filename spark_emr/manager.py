@@ -1,14 +1,16 @@
 import time
 import uuid
-import loguru
+
+from timeit import default_timer as timer
 
 import boto3
+import loguru
 import spark_emr.bootstrap
 
-from spark_optimizer.optimizer import calculate_spark_settings
+from spark_optimizer.optimizer import (calculate_spark_settings,
+                                       load_emr_instance)
 from spark_emr.step import spark_step, spark_yarn_log_step
 from spark_emr.util import S3Path
-from spark_emr.const import NAMESPACE
 
 log = loguru.logger
 
@@ -104,7 +106,7 @@ class EmrManager(object):
         log.info("Using EMR <<classification_config:%s>>" % ret)
         return ret
 
-    def _create_instance_config(self):
+    def _create_instance_config(self, bid_master=None, bid_core=None):
         master = {
             "Name": "Master Instance",
             "InstanceRole": "MASTER",
@@ -141,6 +143,12 @@ class EmrManager(object):
                 "EbsOptimized": True
             }
         }
+        if bid_master:
+            master["BidPrice"] = str(bid_master)
+            master["Market"] = "SPOT"
+        if bid_core:
+            core["BidPrice"] = str(bid_core)
+            core["Market"] = "SPOT"
         ret = {
             "InstanceGroups": [master, core],
             "Ec2SubnetId": self._subnet_id,
@@ -153,19 +161,17 @@ class EmrManager(object):
                 name,
                 step=[],
                 tag={},
-                bootstrap_action=None):
+                bootstrap_action=None,
+                bid_master=None,
+                bid_core=None):
         cluster_tag = []
 
-        # add always a namespace
-        if "namespace" not in tag:
-            cluster_tag.append(
-                {"Key": "namespace", "Value": NAMESPACE})
         for k, v in tag.items():
             cluster_tag.append({"Key": k, "Value": v})
 
         job_flow_details = self.emr.run_job_flow(
             Name=name,
-            Instances=self._create_instance_config(),
+            Instances=self._create_instance_config(bid_master, bid_core),
             BootstrapActions=bootstrap_action,
             ServiceRole=self._service_role,
             ReleaseLabel=self._emr_version,
@@ -187,7 +193,10 @@ class EmrManager(object):
             package,
             tag,
             poll,
-            yarn_log):
+            yarn_log,
+            bid_master,
+            bid_core
+    ):
 
         self.s3mgr.delete(self._bootstrap_uri.key, self._bootstrap_uri.bucket)
 
@@ -204,7 +213,10 @@ class EmrManager(object):
         if yarn_log:
             step.append(yarn_log_step)
 
-        job_flow_id = self._launch(name, step, tag, bootstrap_action)
+        job_flow_id = self._launch(name, step, tag, bootstrap_action,
+                                   bid_master, bid_core)
+        self.bid_master = bid_master
+        self.bid_core = bid_core
 
         log.info("EMR <<job_flow_id:%s>>" % job_flow_id)
 
@@ -223,9 +235,35 @@ class EmrManager(object):
     def stop(self):
         return stop([self.job_flow_id], self._region)
 
+    def _log_cost(self):
+        try:
+            config = load_emr_instance()
+            master_info = config[self._master_type]["pricing"]
+            core_info = config[self._core_type]["pricing"]
+            ec2_master = float(master_info[self._region]["ec2"])
+            if self.bid_master:
+                ec2_master = self.bid_master 
+            ec2_core = float(core_info[self._region]["ec2"])
+            if self.bid_core:
+                ec2_core = self.bid_core 
+            mcost = (ec2_master + float(master_info[self._region]["emr"]))
+            ccost = ((ec2_core + float(core_info[self._region]["emr"])) *
+                     self._instance_count)
+            cost_per_hour = mcost + ccost
+            end = timer()
+            # uptime is in seconds
+            uptime = end - self._start_timer
+            cost_since = (cost_per_hour / 3600) * uptime
+            log.info("Approximate <<cost:%.4f$>> <<uptime:%.2fm>>" %
+                     (cost_since, (uptime / 60)))
+        except Exception:
+            pass
+
     def waiting(self, polling_interval=10):
+        self._start_timer = timer()
         while True:
             keep_waiting = self._step_finished()
+            self._log_cost()
             if not keep_waiting:
                 break
             time.sleep(polling_interval)
@@ -254,22 +292,25 @@ def status(job_flow_id, region):
 
 def stop(job_flow_ids, region):
     emr = boto3.client("emr", region_name=region)
-    # XXX first remove tags than stop
-    for job_flow_id in job_flow_ids:
-        emr.remove_tags(ResourceId=job_flow_id, TagKeys=["namespace"])
     return emr.terminate_job_flows(JobFlowIds=job_flow_ids)
 
 
-def list(namespace, region):
+def list(_filter, region):
     emr = boto3.client("emr", region_name=region)
     ret = []
+
+    def comp(x, y):
+        return {k: x[k] for k in x if k in y and x[k] == y[k]}
 
     def _collect(page):
         for p in page:
             cluster = status(p["Id"], region)["Cluster"]
             tag = {x["Key"]: x["Value"] for x in cluster["Tags"]}
-            if "namespace" in tag and tag["namespace"] == namespace:
-                ret.append(cluster)
+            cluster["TagsClean"] = tag
+
+            if _filter and len(comp(_filter, tag)) == len(_filter):
+                continue
+            ret.append(cluster)
 
     page = emr.list_clusters()
     _collect(page["Clusters"])

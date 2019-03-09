@@ -3,7 +3,6 @@ import os
 home = os.path.expanduser("~")
 
 CONFIG_DIR = os.path.join(home, ".config", "spark-emr.yaml")
-NAMESPACE = "spark_emr"
 
 SH_INSTALL_PYTHON = "install_python.sh"
 SH_YARN_LOG = "yarn_log.sh"
