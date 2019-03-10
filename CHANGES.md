@@ -1,6 +1,6 @@
 # CHANGES
 
-0.1.2 (unreleased)
+0.1.2 (2019-03-10)
 ------------------
 
 - Add spot price check cli.
