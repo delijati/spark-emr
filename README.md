@@ -58,6 +58,8 @@ cluster until finished, stop cluster:
     $ spark-emr start \
     [--config config.yaml] \
     --name "Spark-ETL" \
+    --bid-master 0.04 \
+    --bid-core 0.04 \
     --cmdline "etl.py --input s3://in/in.csv --output s3://out/out.csv" \
     --tags foo 2 bar 4 \
     --poll \
@@ -87,6 +89,12 @@ List all cluster and filter optionally by tag:
 Stop a running cluster:
 
     $ spark-emr stop --cluster-id j-XXXXX
+
+### Spot price check
+
+This call returns for all regions and configured instances the spot price:
+
+    $ spark-emr spot
 
 # Appendix
 
