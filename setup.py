@@ -2,7 +2,7 @@ import os
 
 from setuptools import find_packages, setup
 
-version = "0.1.2"
+version = "0.1.3.dev0"
 
 here = os.path.abspath(os.path.dirname(__file__))
 CHANGES = open(os.path.join(here, "CHANGES.md")).read()
