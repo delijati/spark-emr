@@ -34,6 +34,18 @@ class TestEMRManager(unittest.TestCase):
                     False)
                 self.assertIsNotNone(job_flow_id)
 
+    def test_create_classification_config(self):
+        config = spark_emr.util.load_config(CONFIG)
+        emr = spark_emr.manager.EmrManager(config)
+        config = emr._create_classification_config()
+        self.assertEqual(len(config), 5)
+
+    def test_create_instance_config(self):
+        config = spark_emr.util.load_config(CONFIG)
+        emr = spark_emr.manager.EmrManager(config)
+        config = emr._create_instance_config(bid_master=0.2, bid_core=0.2)
+        self.assertEqual(len(config.keys()), 4)
+
     def test_list(self):
         with moto.mock_s3():
             with moto.mock_emr():
